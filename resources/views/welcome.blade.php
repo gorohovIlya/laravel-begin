@@ -1,13 +1,11 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ config('app.name', 'Laravel') }}</title>
-    </head>
-    <body>
-        <h1>
-            {{ now() }}
-        </h1>
-    </body>
-</html>
+@extends('layouts.app')
+
+@section('content')
+<div class="card text-center">
+    <h1>Мой первый сайт на Laravel</h1>
+    <p>На Самом деле второй =)</p>
+    <div style="margin-top: 24px;">
+        <a href="{{ route('register') }}" class="btn">Регистрация</a>
+    </div>
+</div>
+@endsection
