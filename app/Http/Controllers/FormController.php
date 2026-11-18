@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Event;
+use App\Models\Participant;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class FormController extends Controller
 {
@@ -20,37 +21,29 @@ class FormController extends Controller
             'phone' => [
                 'required',
                 'string',
-                'regex:/^(?:\+7|8)\d{10}$/'
+                'regex:/^(?:\+7|8)\d{10}$/',
             ],
-            'agreed' => 'accepted'
+            'agreed' => 'accepted',
         ]);
 
-        $data['created_at'] = now()->toDateTimeString();
+        $event = Event::firstOrCreate(
+            ['slug' => 'registration'],
+            [
+                'title' => 'Регистрация',
+                'description' => 'Общая регистрация участников',
+                'is_published' => true,
+                'starts_at' => now()->addMonth(),
+                'location' => 'Онлайн',
+            ]
+        );
 
-        $folder = 'users';
-        $disk = Storage::disk('local');
-
-        if (!$disk->exists($folder)) {
-            $disk->makeDirectory($folder);
-        }
-
-        $files = $disk->files($folder);
-
-        $maxId = 0;
-        foreach ($files as $file) {
-            $fileName = basename($file);
-            if (preg_match('/^user_(\d+)\.json$/', $fileName, $matches)) {
-                $currentId = (int)$matches[1];
-                if ($currentId > $maxId) {
-                    $maxId = $currentId;
-                }
-            }
-        }
-
-        $newId = $maxId + 1;
-        $newFileName = $folder . '/user_' . $newId . '.json';
-        $jsonContent = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        $disk->put($newFileName, $jsonContent);
+        Participant::create([
+            'event_id' => $event->id,
+            'name' => $data['name'],
+            'lastname' => $data['lastname'],
+            'phone' => $data['phone'],
+            'agreed' => true,
+        ]);
 
         return redirect()->route('register.success');
     }
@@ -62,25 +55,7 @@ class FormController extends Controller
 
     public function participants()
     {
-        $folder = 'users';
-        $disk = Storage::disk('local');
-        $participants = [];
-
-        if ($disk->exists($folder)) {
-            $files = $disk->files($folder);
-            sort($files);
-
-            foreach ($files as $file) {
-                $fileName = basename($file);
-                if (preg_match('/^user_\d+\.json$/', $fileName)) {
-                    $content = $disk->get($file);
-                    $decoded = json_decode($content, true);
-                    if (is_array($decoded)) {
-                        $participants[] = $decoded;
-                    }
-                }
-            }
-        }
+        $participants = Participant::with('event')->recent()->get();
 
         return view('participants', ['participants' => $participants]);
     }
